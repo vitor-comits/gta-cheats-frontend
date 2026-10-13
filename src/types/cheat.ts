@@ -17,6 +17,7 @@ export interface GameInfo {
   year: number;
   description: string;
   platforms: string[];
+  aliases?: string[];
 }
 
 export const GTA_CATALOG: GameInfo[] = [
@@ -26,6 +27,7 @@ export const GTA_CATALOG: GameInfo[] = [
     year: 2013,
     description: "Cell phone numbers, button combinations, and PC console commands for Los Santos and Blaine County.",
     platforms: ["PC", "PS5", "PS4", "PS3", "Xbox Series X/S", "Xbox One", "Xbox 360"],
+    aliases: ["gta 5", "gta v", "gtav", "gta5", "five"],
   },
   {
     id: "gta-tbogt",
@@ -33,6 +35,7 @@ export const GTA_CATALOG: GameInfo[] = [
     year: 2009,
     description: "Exclusive vehicles, explosive ammo, parachute, and player cheats entered via the in-game cell phone.",
     platforms: ["PC", "PS3", "Xbox 360"],
+    aliases: ["tbogt", "ballad of gay tony", "gay tony", "gta gay tony", "gta 4 gay tony", "gta iv gay tony"],
   },
   {
     id: "gta-cw",
@@ -40,6 +43,7 @@ export const GTA_CATALOG: GameInfo[] = [
     year: 2009,
     description: "Replay board magnetic letters and handheld button sequences for weapons, weather, and wanted levels.",
     platforms: ["PSP", "Nintendo DS", "Mobile"],
+    aliases: ["chinatown", "chinatown wars", "gta cw", "cw", "gta chinatown"],
   },
   {
     id: "gta-tlad",
@@ -47,6 +51,7 @@ export const GTA_CATALOG: GameInfo[] = [
     year: 2009,
     description: "Biker gang assistance, weapons, bikes and health codes through Niko and Johnny's mobile phone.",
     platforms: ["PC", "PS3", "Xbox 360"],
+    aliases: ["tlad", "the lost and damned", "lost and damned", "gta tlad", "gta 4 lost and damned"],
   },
   {
     id: "gta-iv",
@@ -54,6 +59,7 @@ export const GTA_CATALOG: GameInfo[] = [
     year: 2008,
     description: "Cell phone dialing cheats for Liberty City spanning health, weapons, Annihilator helicopter and vehicles.",
     platforms: ["PC", "PS3", "Xbox 360"],
+    aliases: ["gta 4", "gta iv", "gta4", "gtaiv", "four"],
   },
   {
     id: "gta-vcs",
@@ -61,6 +67,7 @@ export const GTA_CATALOG: GameInfo[] = [
     year: 2006,
     description: "Controller combinations for 1984 Vice City health, weapons, weather, money and vehicle spawns.",
     platforms: ["PS2", "PSP"],
+    aliases: ["vcs", "vice city stories", "gta vcs", "gta vice city stories"],
   },
   {
     id: "gta-lcs",
@@ -68,6 +75,7 @@ export const GTA_CATALOG: GameInfo[] = [
     year: 2005,
     description: "Codes for Toni Cipriani including weapon packs, tank spawns, and pedestrian riot modes.",
     platforms: ["PS2", "PSP", "Mobile"],
+    aliases: ["lcs", "liberty city stories", "gta lcs", "gta liberty city stories"],
   },
   {
     id: "gta-sa",
@@ -75,6 +83,7 @@ export const GTA_CATALOG: GameInfo[] = [
     year: 2004,
     description: "HESOYAM, JETPACK, infinite ammo, flying cars and full controller sequences across San Andreas.",
     platforms: ["PC", "PS2", "PS3", "PS4", "Xbox", "Xbox 360", "Mobile"],
+    aliases: ["gta sa", "gtasa", "san andreas", "gta san andreas", "gta san"],
   },
   {
     id: "gta-vc",
@@ -82,6 +91,7 @@ export const GTA_CATALOG: GameInfo[] = [
     year: 2002,
     description: "Classic neon 80s cheats: ASPIRINE, PRECIOUSPROTECTION, PANZER tank, and weapons packs.",
     platforms: ["PC", "PS2", "Xbox", "Mobile"],
+    aliases: ["gta vc", "gtavc", "vice city", "gta vice city", "gta vice"],
   },
   {
     id: "gta-iii",
@@ -89,6 +99,7 @@ export const GTA_CATALOG: GameInfo[] = [
     year: 2001,
     description: "The groundbreaking 3D Liberty City codes for health, guns, tank Rhino and flying dodo.",
     platforms: ["PC", "PS2", "Xbox"],
+    aliases: ["gta 3", "gta iii", "gta3", "gtaiii", "three"],
   },
   {
     id: "gta-2",
@@ -96,6 +107,7 @@ export const GTA_CATALOG: GameInfo[] = [
     year: 1999,
     description: "Top-down retro cheats entered via player name in the Anywhere City district selector.",
     platforms: ["PC", "PS1", "Dreamcast"],
+    aliases: ["gta 2", "gta ii", "gta2", "two"],
   },
   {
     id: "gta-1",
@@ -103,6 +115,7 @@ export const GTA_CATALOG: GameInfo[] = [
     year: 1997,
     description: "The original 1997 top-down crime classic player name cheat codes and level select.",
     platforms: ["PC", "PS1"],
+    aliases: ["gta 1", "gta1", "gta original", "gta classic", "one"],
   },
 ];
 

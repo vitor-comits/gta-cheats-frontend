@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useTransition } from "react";
-import { Cheat, GTA_CATALOG, GameInfo } from "@/types/cheat";
+import { Cheat, GTA_CATALOG, CATEGORIES, GameInfo } from "@/types/cheat";
 import {
   fetchCheats,
   createCheat,
@@ -12,20 +12,23 @@ import {
 import CheatModal from "@/components/CheatModal";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import ApiConfigModal from "@/components/ApiConfigModal";
+import AboutModal from "@/components/AboutModal";
+import Toast from "@/components/Toast";
 
 export default function CatalogAdminPage() {
   const [cheats, setCheats] = useState<Cheat[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Busca e Filtros
+  // Busca e Filtros da Página Principal
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [, startTransition] = useTransition();
 
-  // Visualização de Cheats do Jogo Selecionado (drawer ou modal)
+  // Visualização de Cheats do Jogo Selecionado
   const [activeGameModal, setActiveGameModal] = useState<GameInfo | null>(null);
+  const [modalCategoryFilter, setModalCategoryFilter] = useState<string>("all");
 
-  // Modais de Criação / Edição / Exclusão
+  // Modais de Criação / Edição / Exclusão / Config / About
   const [isCheatModalOpen, setIsCheatModalOpen] = useState<boolean>(false);
   const [cheatToEdit, setCheatToEdit] = useState<Cheat | null>(null);
 
@@ -33,7 +36,21 @@ export default function CatalogAdminPage() {
   const [cheatToDelete, setCheatToDelete] = useState<Cheat | null>(null);
 
   const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState<boolean>(false);
   const [currentApiUrl, setCurrentApiUrl] = useState<string>("");
+
+  // Toast Feedback State
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+  } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast((prev) => (prev?.message === message ? null : prev));
+    }, 3500);
+  };
 
   const loadCheats = async () => {
     try {
@@ -57,22 +74,12 @@ export default function CatalogAdminPage() {
     loadCheats();
   }, []);
 
-  // Mapeamento de contagem de cheats por jogo
+  // Mapeamento de contagem de cheats por jogo (banco de dados real + base)
   const cheatCountByGame = useMemo(() => {
-    const counts: Record<string, number> = {
-      "gta-v": 34,
-      "gta-tbogt": 24,
-      "gta-cw": 19,
-      "gta-tlad": 18,
-      "gta-iv": 30,
-      "gta-vcs": 22,
-      "gta-lcs": 21,
-      "gta-sa": 40,
-      "gta-vc": 28,
-      "gta-iii": 15,
-      "gta-2": 12,
-      "gta-1": 10,
-    };
+    const counts: Record<string, number> = {};
+    GTA_CATALOG.forEach((g) => {
+      counts[g.id] = 0;
+    });
 
     cheats.forEach((c) => {
       if (c.game) {
@@ -83,26 +90,87 @@ export default function CatalogAdminPage() {
     return counts;
   }, [cheats]);
 
-  // Filtro de jogos no catálogo pela barra de busca
+  // Filtro inteligente de jogos no catálogo com ranking de relevância
   const filteredGames = useMemo(() => {
     if (!searchQuery.trim()) return GTA_CATALOG;
-    const q = searchQuery.toLowerCase().trim();
-    return GTA_CATALOG.filter((game) => {
-      const matchTitle = game.title.toLowerCase().includes(q);
-      const matchYear = game.year.toString().includes(q);
-      const matchDesc = game.description.toLowerCase().includes(q);
-      const matchPlatforms = game.platforms.some((p) =>
-        p.toLowerCase().includes(q)
+
+    const normalize = (str: string) =>
+      str
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const q = normalize(searchQuery);
+    const qClean = q.replace(/\s+/g, "");
+
+    // Calcula pontuação de relevância para cada jogo
+    const scoredGames = GTA_CATALOG.map((game) => {
+      const titleNorm = normalize(game.title);
+      const titleClean = titleNorm.replace(/\s+/g, "");
+      const idNorm = normalize(game.id);
+      const descNorm = normalize(game.description);
+      const yearStr = game.year.toString();
+
+      let score = 0;
+
+      // 1. Correspondência exata no ID ou título limpo (ex: "gta-iv" ou "gtain" ou título exato)
+      if (idNorm === q || game.id === searchQuery.trim().toLowerCase()) score += 100;
+      if (titleNorm === q || titleClean === qClean) score += 90;
+
+      // 2. Correspondência exata em algum alias principal (ex: "gta 4" em gta-iv)
+      const exactAlias = (game.aliases || []).some((alias) => {
+        const aliasNorm = normalize(alias);
+        return aliasNorm === q || aliasNorm.replace(/\s+/g, "") === qClean;
+      });
+      if (exactAlias) score += 80;
+
+      // 3. Início do título (starts with)
+      if (titleNorm.startsWith(q)) score += 50;
+
+      // 4. Início de algum alias
+      const startsWithAlias = (game.aliases || []).some((alias) =>
+        normalize(alias).startsWith(q)
       );
-      return matchTitle || matchYear || matchDesc || matchPlatforms;
+      if (startsWithAlias) score += 40;
+
+      // 5. Contém no título ou no alias
+      if (titleNorm.includes(q) || titleClean.includes(qClean)) score += 30;
+      const containsAlias = (game.aliases || []).some((alias) => {
+        const aNorm = normalize(alias);
+        const aClean = aNorm.replace(/\s+/g, "");
+        return aNorm.includes(q) || aClean.includes(qClean);
+      });
+      if (containsAlias) score += 20;
+
+      // 6. Ano ou plataforma
+      if (yearStr === q) score += 15;
+      const matchPlatforms = game.platforms.some((p) => normalize(p) === q);
+      if (matchPlatforms) score += 10;
+
+      // 7. Descrição (menor relevância)
+      if (descNorm.includes(q)) score += 5;
+
+      return { game, score };
     });
+
+    return scoredGames
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.game);
   }, [searchQuery]);
 
-  // Cheats pertencentes ao jogo atualmente aberto no modal
+  // Cheats pertencentes ao jogo atualmente aberto no modal com filtro de categoria
   const activeGameCheats = useMemo(() => {
     if (!activeGameModal) return [];
-    return cheats.filter((c) => c.game === activeGameModal.id);
-  }, [cheats, activeGameModal]);
+    let list = cheats.filter((c) => c.game === activeGameModal.id);
+    if (modalCategoryFilter !== "all") {
+      list = list.filter((c) => c.category === modalCategoryFilter);
+    }
+    return list;
+  }, [cheats, activeGameModal, modalCategoryFilter]);
 
   // Ações de Cheat
   const handleOpenCreate = (preselectedGameId?: string) => {
@@ -131,16 +199,20 @@ export default function CatalogAdminPage() {
   };
 
   const handleSaveCheat = async (cheatData: Partial<Cheat>) => {
-    if (cheatToEdit && cheatToEdit.id) {
+    const isEdit = Boolean(cheatToEdit && cheatToEdit.id);
+    if (isEdit && cheatToEdit?.id) {
       await updateCheat(cheatToEdit.id, cheatData);
+      showToast("Cheat atualizado com sucesso!", "success");
     } else {
       await createCheat(cheatData);
+      showToast("Cheat cadastrado com sucesso!", "success");
     }
     await loadCheats();
   };
 
   const handleDeleteCheat = async (id: string) => {
     await deleteCheat(id);
+    showToast("Cheat excluído com sucesso!", "success");
     await loadCheats();
   };
 
@@ -166,6 +238,12 @@ export default function CatalogAdminPage() {
               All Games
             </button>
             <button
+              onClick={() => setIsAboutModalOpen(true)}
+              className="text-zinc-600 hover:text-zinc-900 transition-colors cursor-pointer"
+            >
+              About
+            </button>
+            <button
               onClick={() => setIsConfigModalOpen(true)}
               className="text-zinc-600 hover:text-zinc-900 transition-colors cursor-pointer flex items-center gap-1.5"
             >
@@ -188,34 +266,70 @@ export default function CatalogAdminPage() {
           <h1 className="text-3xl font-extrabold text-zinc-950 tracking-tight">
             GTA Cheats Catalog
           </h1>
-          <p className="text-sm text-zinc-500 mt-1.5">
+          <p className="text-sm text-zinc-600 mt-1.5">
             Quick reference for cheat codes across all Grand Theft Auto titles.
           </p>
         </div>
+
+        {/* Backend Offline Banner Notification */}
+        {error && (
+          <div
+            role="alert"
+            className="mb-6 p-4 bg-amber-50 border border-amber-300 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-950"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xl" aria-hidden="true">⚠️</span>
+              <div>
+                <p className="text-sm font-semibold">
+                  Servidor Backend não detectado ({currentApiUrl})
+                </p>
+                <p className="text-xs text-amber-800 mt-0.5">
+                  Inicie o servidor Flask localmente em <code>localhost:5000</code> ou ajuste a URL para o servidor em nuvem.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => loadCheats()}
+                className="px-3 py-1.5 text-xs font-semibold bg-white border border-amber-400 hover:bg-amber-100 rounded-md transition-colors cursor-pointer text-amber-950"
+              >
+                Tentar Novamente 🔄
+              </button>
+              <button
+                onClick={() => setIsConfigModalOpen(true)}
+                className="px-3 py-1.5 text-xs font-semibold bg-amber-900 text-white hover:bg-amber-950 rounded-md transition-colors cursor-pointer"
+              >
+                Configurar API
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Search Bar Container */}
         <div className="bg-white border border-zinc-200/90 rounded-lg p-5 shadow-xs mb-8">
           <div className="relative flex items-center">
             <input
-              type="text"
+              type="search"
+              aria-label="Buscar jogos por título, ano ou plataforma"
               value={searchQuery}
               onChange={(e) =>
                 startTransition(() => setSearchQuery(e.target.value))
               }
               placeholder="Search games by title, year, or platform..."
-              className="w-full px-4 py-2.5 text-sm bg-white border border-zinc-300 rounded-md text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 text-sm bg-white border border-zinc-300 rounded-md text-zinc-900 placeholder:text-zinc-500 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
             />
             {searchQuery && (
               <button
                 type="button"
+                aria-label="Limpar campo de busca"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 text-xs font-medium text-zinc-400 hover:text-zinc-600 px-2 py-1"
+                className="absolute right-3 text-xs font-medium text-zinc-600 hover:text-zinc-900 px-2 py-1"
               >
                 Clear
               </button>
             )}
           </div>
-          <div className="mt-3 text-xs text-zinc-500 font-medium">
+          <div className="mt-3 text-xs text-zinc-600 font-medium" aria-live="polite">
             Showing {filteredGames.length} of {GTA_CATALOG.length} games
           </div>
         </div>
@@ -276,7 +390,10 @@ export default function CatalogAdminPage() {
                       </button>
 
                       <button
-                        onClick={() => setActiveGameModal(game)}
+                        onClick={() => {
+                          setModalCategoryFilter("all");
+                          setActiveGameModal(game);
+                        }}
                         className="px-3.5 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50/80 border border-blue-200 rounded transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
                         <span>View Cheats</span>
@@ -307,7 +424,8 @@ export default function CatalogAdminPage() {
       <div className="fixed bottom-6 left-6 z-20">
         <button
           onClick={() => setIsConfigModalOpen(true)}
-          className="w-10 h-10 rounded-full bg-zinc-900 text-white flex items-center justify-center font-serif text-sm shadow-lg hover:scale-105 transition-transform cursor-pointer"
+          aria-label="Abrir configurações de API e Administrador"
+          className="w-10 h-10 rounded-full bg-zinc-900 text-white flex items-center justify-center font-serif text-sm shadow-lg hover:scale-105 transition-transform cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900"
           title="Configurações da API & Administrador"
         >
           N
@@ -316,32 +434,60 @@ export default function CatalogAdminPage() {
 
       {/* MODAL: View Cheats & Admin Actions for Specific Game */}
       {activeGameModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="game-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+        >
           <div className="relative w-full max-w-3xl bg-white border border-zinc-200 rounded-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-zinc-50">
-              <div>
-                <h3 className="text-lg font-bold text-zinc-900">
-                  {activeGameModal.title} ({activeGameModal.year})
-                </h3>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  Gerenciamento e códigos cheats para este jogo
-                </p>
+            <div className="px-6 py-4 border-b border-zinc-100 bg-zinc-50 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 id="game-modal-title" className="text-lg font-bold text-zinc-900">
+                    {activeGameModal.title} ({activeGameModal.year})
+                  </h3>
+                  <p className="text-xs text-zinc-600 mt-0.5">
+                    Gerenciamento e códigos cheats para este jogo
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleOpenCreate(activeGameModal.id)}
+                    className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors cursor-pointer"
+                  >
+                    + Novo Cheat
+                  </button>
+                  <button
+                    onClick={() => setActiveGameModal(null)}
+                    aria-label="Fechar janela de cheats"
+                    className="p-1.5 text-zinc-500 hover:text-zinc-800 rounded-md hover:bg-zinc-200 text-sm transition-colors cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleOpenCreate(activeGameModal.id)}
-                  className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors cursor-pointer"
-                >
-                  + Novo Cheat
-                </button>
-                <button
-                  onClick={() => setActiveGameModal(null)}
-                  className="p-1.5 text-zinc-400 hover:text-zinc-600 rounded-md hover:bg-zinc-200 text-sm transition-colors cursor-pointer"
-                >
-                  ✕
-                </button>
+              {/* Categorias / Chips de Filtro Rápido */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 scrollbar-none">
+                {CATEGORIES.map((cat) => {
+                  const isActive = modalCategoryFilter === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setModalCategoryFilter(cat.id)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                        isActive
+                          ? "bg-zinc-900 text-white"
+                          : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-100"
+                      }`}
+                    >
+                      {cat.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -353,9 +499,11 @@ export default function CatalogAdminPage() {
                 </div>
               ) : activeGameCheats.length === 0 ? (
                 <div className="py-12 text-center text-zinc-500">
-                  <p className="text-sm font-medium">Nenhum cheat cadastrado ainda para este jogo no banco de dados.</p>
+                  <p className="text-sm font-medium">Nenhum cheat encontrado para este filtro.</p>
                   <p className="text-xs text-zinc-400 mt-1">
-                    Você pode cadastrar novos códigos clicando no botão &quot;+ Novo Cheat&quot;.
+                    {modalCategoryFilter !== "all"
+                      ? "Tente selecionar outra categoria ou 'Todas as Categorias'."
+                      : "Você pode cadastrar novos códigos clicando no botão '+ Novo Cheat'."}
                   </p>
                   <button
                     onClick={() => handleOpenCreate(activeGameModal.id)}
@@ -453,7 +601,7 @@ export default function CatalogAdminPage() {
         </div>
       )}
 
-      {/* Modais de Operação Admin */}
+      {/* Modais de Operação Admin & Info */}
       <CheatModal
         isOpen={isCheatModalOpen}
         onClose={() => setIsCheatModalOpen(false)}
@@ -473,6 +621,20 @@ export default function CatalogAdminPage() {
         onClose={() => setIsConfigModalOpen(false)}
         onRefresh={() => loadCheats()}
       />
+
+      <AboutModal
+        isOpen={isAboutModalOpen}
+        onClose={() => setIsAboutModalOpen(false)}
+      />
+
+      {/* Toast Feedback Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
