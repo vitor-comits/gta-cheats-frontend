@@ -1,10 +1,15 @@
 import { Cheat } from "@/types/cheat";
 
-const API_BASE_URL = (
+const RAW_API_URL = (
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_GTA_API_URL ||
-  "https://gta-cheats-backend.vercel.app"
-).replace(/\/+$/, "");
+  "http://localhost:5000"
+).trim().replace(/\/+$/, "");
+
+const API_BASE_URL =
+  RAW_API_URL.startsWith("http://") || RAW_API_URL.startsWith("https://")
+    ? RAW_API_URL
+    : `http://${RAW_API_URL}`;
 
 const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY || "";
 
@@ -21,6 +26,19 @@ const GAME_ALIASES: Record<string, string[]> = {
   "gta-the-lost-and-damned": ["gta-the-lost-and-damned", "gta-tlad"],
   "vice-city-stories": ["vice-city-stories", "gta-vcs"],
   "liberty-city-stories": ["liberty-city-stories", "gta-lcs"],
+};
+
+const CANONICAL_BACKEND_GAME_ID: Record<string, string> = {
+  "gta-5": "gta-v",
+  "san-andreas": "gta-sa",
+  "gta-4": "gta-iv",
+  "vice-city": "gta-vc",
+  "gta-3": "gta-iii",
+  "gta-the-ballad-of-gay-tony": "gta-tbogt",
+  "gta-chinatown-wars": "gta-cw",
+  "gta-the-lost-and-damned": "gta-tlad",
+  "vice-city-stories": "gta-vcs",
+  "liberty-city-stories": "gta-lcs",
 };
 
 function getHeaders(): HeadersInit {
@@ -76,10 +94,15 @@ export async function fetchCheats(
 }
 
 export async function createCheat(cheat: Partial<Cheat>): Promise<Cheat> {
+  const payload = {
+    ...cheat,
+    game: cheat.game ? (CANONICAL_BACKEND_GAME_ID[cheat.game] || cheat.game) : cheat.game,
+  };
+
   const res = await fetch(`${API_BASE_URL}/api/cheats`, {
     method: "POST",
     headers: getHeaders(),
-    body: JSON.stringify(cheat),
+    body: JSON.stringify(payload),
   });
 
   const data = await res.json();
@@ -90,10 +113,15 @@ export async function createCheat(cheat: Partial<Cheat>): Promise<Cheat> {
 }
 
 export async function updateCheat(id: string, cheat: Partial<Cheat>): Promise<Cheat> {
+  const payload = {
+    ...cheat,
+    ...(cheat.game ? { game: CANONICAL_BACKEND_GAME_ID[cheat.game] || cheat.game } : {}),
+  };
+
   const res = await fetch(`${API_BASE_URL}/api/cheats/${id}`, {
     method: "PUT",
     headers: getHeaders(),
-    body: JSON.stringify(cheat),
+    body: JSON.stringify(payload),
   });
 
   const data = await res.json();
