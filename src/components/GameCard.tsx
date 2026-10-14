@@ -34,9 +34,6 @@ export function GameCard({ game }: GameCardProps) {
         </div>
 
         <div className="game-card-actions">
-          <span className="game-card-count">
-            {game.cheatCount} códigos disponíveis
-          </span>
           <Link href={`/cheats/${game.id}`} className="action-link">
             Ver Códigos &rarr;
           </Link>

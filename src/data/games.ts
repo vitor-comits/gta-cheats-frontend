@@ -5,7 +5,6 @@ export interface Game {
   releaseYear: number;
   platforms: string[];
   description: string;
-  cheatCount: number;
 }
 
 export const GAMES: Game[] = [
@@ -25,7 +24,6 @@ export const GAMES: Game[] = [
     ],
     description:
       "Números de celular, combinações de botões e comandos de console no PC para Los Santos e Blaine County.",
-    cheatCount: 34,
   },
   {
     id: "gta-the-ballad-of-gay-tony",
@@ -35,7 +33,6 @@ export const GAMES: Game[] = [
     platforms: ["PC", "PS3", "Xbox 360"],
     description:
       "Veículos exclusivos, munição explosiva, paraquedas e códigos de jogador digitados pelo celular do jogo.",
-    cheatCount: 24,
   },
   {
     id: "gta-chinatown-wars",
@@ -45,7 +42,6 @@ export const GAMES: Game[] = [
     platforms: ["PSP", "Nintendo DS", "Mobile"],
     description:
       "Letras magnéticas no quadro de missões e sequências de botões para armas, clima e nível de procurado.",
-    cheatCount: 19,
   },
   {
     id: "gta-the-lost-and-damned",
@@ -55,7 +51,6 @@ export const GAMES: Game[] = [
     platforms: ["PC", "PS3", "Xbox 360"],
     description:
       "Motos da gangue, vans, armas e códigos de vida discados diretamente no celular de Johnny Klebitz.",
-    cheatCount: 22,
   },
   {
     id: "gta-4",
@@ -65,7 +60,6 @@ export const GAMES: Game[] = [
     platforms: ["PC", "PS3", "Xbox 360"],
     description:
       "Códigos por telefone para Niko Bellic em Liberty City incluindo armas, vida, clima e carros esportivos.",
-    cheatCount: 16,
   },
   {
     id: "vice-city-stories",
@@ -75,7 +69,6 @@ export const GAMES: Game[] = [
     platforms: ["PS2", "PSP"],
     description:
       "Sequências de botões para pacotes de armas, tanque Rhino, comportamento de pedestres e trânsito.",
-    cheatCount: 38,
   },
   {
     id: "liberty-city-stories",
@@ -85,7 +78,6 @@ export const GAMES: Game[] = [
     platforms: ["PS2", "PSP", "Mobile"],
     description:
       "Combinações clássicas de controle para colete, dinheiro, pacotes de armas e física de veículos em Liberty City.",
-    cheatCount: 41,
   },
   {
     id: "san-andreas",
@@ -105,7 +97,6 @@ export const GAMES: Game[] = [
     ],
     description:
       "Catálogo completo de palavras no teclado e sequências de controle incluindo HESOYAM, Jetpack, Hydra e atributos.",
-    cheatCount: 88,
   },
   {
     id: "vice-city",
@@ -123,7 +114,6 @@ export const GAMES: Game[] = [
     ],
     description:
       "Códigos clássicos de teclado e comandos de controle para Tommy Vercetti, pacotes de armas, tanque Panzer e carros voadores.",
-    cheatCount: 62,
   },
   {
     id: "gta-3",
@@ -141,7 +131,6 @@ export const GAMES: Game[] = [
     ],
     description:
       "Códigos originais da era 3D no teclado e controle para todas as armas, vida, colete e tanque Rhino.",
-    cheatCount: 27,
   },
   {
     id: "gta-2",
@@ -151,7 +140,6 @@ export const GAMES: Game[] = [
     platforms: ["PC", "PS1", "Dreamcast"],
     description:
       "Códigos inseridos no nome do jogador (GOURANGA) para seleção de fases, vidas infinitas, todas as armas e respeito das gangues.",
-    cheatCount: 25,
   },
   {
     id: "gta-1",
@@ -161,6 +149,5 @@ export const GAMES: Game[] = [
     platforms: ["PC", "PS1"],
     description:
       "Códigos clássicos no nome do personagem para desbloquear todas as cidades, pontuação máxima, vidas infinitas e sem polícia.",
-    cheatCount: 15,
   },
 ];
