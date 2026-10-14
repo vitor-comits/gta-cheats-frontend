@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Cheat, CATEGORIES } from "@/types/cheat";
 import { GAMES } from "@/data/games";
+import { normalizeGameId } from "@/services/api";
 
 interface CheatModalProps {
   isOpen: boolean;
@@ -27,11 +28,12 @@ function CheatForm({
 }: CheatFormProps) {
   const [formData, setFormData] = useState<Partial<Cheat>>(() => {
     if (cheatToEdit) {
+      const normalizedGame = normalizeGameId(cheatToEdit.game) || defaultGameId;
       return {
-        game: cheatToEdit.game || defaultGameId,
+        game: normalizedGame,
         game_name:
           cheatToEdit.game_name ||
-          GAMES.find((g) => g.id === cheatToEdit.game)?.title ||
+          GAMES.find((g) => g.id === normalizedGame)?.title ||
           "",
         title: cheatToEdit.title || "",
         code_pc: cheatToEdit.code_pc || "",

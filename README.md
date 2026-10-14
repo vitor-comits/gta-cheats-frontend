@@ -31,7 +31,6 @@ O frontend é desenvolvido com **Next.js**, aproveitando recursos modernos de re
 - 🎮 **Seleção de Plataforma:** Alterne facilmente entre PC, PlayStation, Xbox, Switch e Mobile para ver os botões ou códigos correspondentes.
 - 📋 **Copiar com 1 Clique:** Copie comandos de console ou códigos numéricos de celular diretamente para a área de transferência.
 - 📱 **Design Responsivo:** Interface otimizada tanto para desktop quanto para smartphones (ideal para consultar enquanto joga).
-- ⭐ **Favoritos:** Salve seus cheats favoritos localmente no navegador.
 
 ---
 

@@ -25,12 +25,6 @@ async function CheatsContent({ params }: CheatsPageProps) {
     notFound();
   }
 
-  const isVercel = Boolean(
-    process.env.VERCEL === "1" ||
-    process.env.NEXT_PUBLIC_VERCEL_ENV ||
-    process.env.NEXT_PUBLIC_IS_VERCEL === "1"
-  );
-
   return (
     <div className="page-container">
       <nav className="breadcrumb" aria-label="Navegação">
@@ -60,7 +54,7 @@ async function CheatsContent({ params }: CheatsPageProps) {
         </div>
       </header>
 
-      <CheatsDirectory game={game} isReadOnly={isVercel} />
+      <CheatsDirectory game={game} isReadOnly={true} />
     </div>
   );
 }
