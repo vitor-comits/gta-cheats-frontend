@@ -1,56 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import type { Game } from "@/data/games";
-
-interface Cheat {
-  id?: string;
-  _id?: string;
-  custom_id?: number;
-  game: string;
-  game_name?: string;
-  title: string;
-  code_pc?: string | null;
-  code_playstation?: string | null;
-  code_xbox?: string | null;
-  code_phone?: string | null;
-  category?: string;
-}
-
-interface CheatsResponse {
-  count: number;
-  cheats: Cheat[];
-}
+import { Cheat } from "@/types/cheat";
+import {
+  fetchCheats,
+  createCheat,
+  updateCheat,
+  deleteCheat,
+} from "@/services/api";
+import CheatModal from "@/components/CheatModal";
+import DeleteConfirmModal from "@/components/DeleteConfirmModal";
+import Toast from "@/components/Toast";
 
 interface CheatsDirectoryProps {
   game: Game;
 }
-
-const API_URL = (
-  process.env.NEXT_PUBLIC_GTA_API_URL ||
-  "https://gta-cheats-backend.vercel.app"
-).replace(/\/+$/, "");
-
-const GAME_ID_ALIASES: Record<string, string[]> = {
-  "gta-5": ["gta-5", "gta-v"],
-  "san-andreas": ["san-andreas", "gta-sa"],
-  "gta-4": ["gta-4", "gta-iv"],
-  "vice-city": ["vice-city", "gta-vice-city"],
-  "gta-3": ["gta-3", "gta-iii"],
-  "gta-2": ["gta-2"],
-  "gta-1": ["gta-1"],
-  "gta-the-ballad-of-gay-tony": [
-    "gta-the-ballad-of-gay-tony",
-    "gta-tbogt",
-  ],
-  "gta-chinatown-wars": ["gta-chinatown-wars"],
-  "gta-the-lost-and-damned": [
-    "gta-the-lost-and-damned",
-    "gta-tlad",
-  ],
-  "vice-city-stories": ["vice-city-stories", "gta-vcs"],
-  "liberty-city-stories": ["liberty-city-stories", "gta-lcs"],
-};
 
 const PLATFORMS = [
   { key: "code_pc", label: "PC" },
@@ -66,77 +31,68 @@ export function CheatsDirectory({ game }: CheatsDirectoryProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copiedId, setCopiedId] = useState("");
-  const [copyError, setCopyError] = useState("");
+
+  // Modais de Criação / Edição / Exclusão
+  const [isCheatModalOpen, setIsCheatModalOpen] = useState(false);
+  const [cheatToEdit, setCheatToEdit] = useState<Cheat | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [cheatToDelete, setCheatToDelete] = useState<Cheat | null>(null);
+
+  // Toast Feedback State
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+  } | null>(null);
+
+  const showToast = (
+    message: string,
+    type: "success" | "error" | "info" = "success"
+  ) => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast((prev) => (prev?.message === message ? null : prev));
+    }, 3500);
+  };
+
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const refreshCheats = useCallback(() => {
+    setLoading(true);
+    setRefreshTrigger((prev) => prev + 1);
+  }, []);
 
   useEffect(() => {
+    let isMounted = true;
     const controller = new AbortController();
 
-    async function loadCheats() {
-      setLoading(true);
-      setError("");
-      setCheats([]);
-
-      try {
-        const gameIds = GAME_ID_ALIASES[game.id] ?? [game.id];
-        const results = await Promise.all(
-          gameIds.map(async (gameId) => {
-            const url = new URL(`${API_URL}/api/cheats`);
-            url.searchParams.set("game", gameId);
-
-            const response = await fetch(url.toString(), {
-              cache: "no-store",
-              signal: controller.signal,
-            });
-
-            if (!response.ok) {
-              throw new Error(
-                `A API respondeu com o status ${response.status}.`
-              );
-            }
-
-            const data: CheatsResponse = await response.json();
-
-            if (!Array.isArray(data.cheats)) {
-              throw new Error(
-                "A resposta da API não contém uma lista válida."
-              );
-            }
-
-            return data.cheats;
-          })
-        );
-
-        const uniqueCheats = new Map<string, Cheat>();
-
-        results.flat().forEach((cheat, index) => {
-          const id = String(
-            cheat.id ?? cheat._id ?? cheat.custom_id ?? `${cheat.game}-${cheat.title}-${index}`
-          );
-          uniqueCheats.set(id, cheat);
-        });
-
-        setCheats(Array.from(uniqueCheats.values()));
-      } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") {
-          return;
+    fetchCheats(game.id, undefined, controller.signal)
+      .then((data) => {
+        if (isMounted) {
+          setCheats(data);
+          setError("");
         }
-
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Não foi possível carregar os cheats."
-        );
-      } finally {
-        if (!controller.signal.aborted) {
+      })
+      .catch((err) => {
+        if (err instanceof Error && err.name === "AbortError") return;
+        if (isMounted) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Não foi possível carregar os cheats."
+          );
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
           setLoading(false);
         }
-      }
-    }
+      });
 
-    loadCheats();
-
-    return () => controller.abort();
-  }, [game.id]);
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [game.id, refreshTrigger]);
 
   const categories = useMemo(() => {
     return Array.from(
@@ -155,9 +111,7 @@ export function CheatsDirectory({ game }: CheatsDirectoryProps) {
       const matchesQuery =
         !search ||
         cheat.title.toLocaleLowerCase("pt-BR").includes(search) ||
-        (cheat.category || "")
-          .toLocaleLowerCase("pt-BR")
-          .includes(search) ||
+        (cheat.category || "").toLocaleLowerCase("pt-BR").includes(search) ||
         PLATFORMS.some(({ key }) => {
           const code = cheat[key];
           return (
@@ -174,43 +128,67 @@ export function CheatsDirectory({ game }: CheatsDirectoryProps) {
   }, [cheats, query, category]);
 
   async function copyCode(code: string, id: string) {
-    setCopyError("");
-
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(code);
       } else {
         const textarea = document.createElement("textarea");
         textarea.value = code;
-        textarea.readOnly = true;
         textarea.style.position = "fixed";
         textarea.style.left = "-9999px";
-
         document.body.appendChild(textarea);
         textarea.focus();
         textarea.select();
-
-        const copied = document.execCommand("copy");
+        document.execCommand("copy");
         textarea.remove();
-
-        if (!copied) {
-          throw new Error("O navegador não permitiu copiar o código.");
-        }
       }
 
       setCopiedId(id);
-
       window.setTimeout(() => {
         setCopiedId((current) => (current === id ? "" : current));
       }, 1800);
-    } catch (err) {
-      console.error("Erro ao copiar cheat:", err);
-      setCopiedId("");
-      setCopyError(
-        "Não foi possível copiar automaticamente. Selecione e copie o código manualmente."
-      );
+    } catch {
+      showToast("Não foi possível copiar automaticamente.", "error");
     }
   }
+
+  // Ações CRUD
+  const handleOpenCreate = () => {
+    setCheatToEdit({
+      game: game.id,
+      game_name: game.title,
+      title: "",
+      category: "player",
+    });
+    setIsCheatModalOpen(true);
+  };
+
+  const handleOpenEdit = (cheat: Cheat) => {
+    setCheatToEdit(cheat);
+    setIsCheatModalOpen(true);
+  };
+
+  const handleOpenDelete = (cheat: Cheat) => {
+    setCheatToDelete(cheat);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleSaveCheat = async (cheatData: Partial<Cheat>) => {
+    if (cheatToEdit?.id) {
+      await updateCheat(cheatToEdit.id, cheatData);
+      showToast("Cheat atualizado com sucesso!", "success");
+    } else {
+      await createCheat(cheatData);
+      showToast("Cheat cadastrado com sucesso!", "success");
+    }
+    refreshCheats();
+  };
+
+  const handleDeleteCheat = async (id: string) => {
+    await deleteCheat(id);
+    showToast("Cheat excluído com sucesso!", "success");
+    refreshCheats();
+  };
 
   return (
     <section className="page-container">
@@ -219,7 +197,6 @@ export function CheatsDirectory({ game }: CheatsDirectoryProps) {
           <label className="sr-only" htmlFor="cheat-search">
             Buscar cheats
           </label>
-
           <input
             id="cheat-search"
             className="search-input"
@@ -232,7 +209,6 @@ export function CheatsDirectory({ game }: CheatsDirectoryProps) {
           <label className="sr-only" htmlFor="cheat-category">
             Filtrar por categoria
           </label>
-
           <select
             id="cheat-category"
             className="category-select"
@@ -260,20 +236,24 @@ export function CheatsDirectory({ game }: CheatsDirectoryProps) {
           </button>
         </div>
 
-        <p className="filter-meta">
-          <span>
-            {loading
-              ? "Carregando códigos..."
-              : `${filteredCheats.length} de ${cheats.length} códigos`}
-          </span>
-        </p>
-      </div>
+        <div className="flex items-center gap-3">
+          <p className="filter-meta">
+            <span>
+              {loading
+                ? "Carregando códigos..."
+                : `${filteredCheats.length} de ${cheats.length} códigos`}
+            </span>
+          </p>
 
-      {copyError && (
-        <p className="empty-state-text" role="status">
-          {copyError}
-        </p>
-      )}
+          <button
+            type="button"
+            onClick={handleOpenCreate}
+            className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+          >
+            + Novo Cheat
+          </button>
+        </div>
+      </div>
 
       {loading && (
         <div className="empty-state" role="status">
@@ -289,7 +269,7 @@ export function CheatsDirectory({ game }: CheatsDirectoryProps) {
           <button
             className="btn-reset"
             type="button"
-            onClick={() => window.location.reload()}
+            onClick={() => refreshCheats()}
           >
             Tentar novamente
           </button>
@@ -300,11 +280,17 @@ export function CheatsDirectory({ game }: CheatsDirectoryProps) {
         <div className="empty-state">
           <p className="empty-state-text">
             {cheats.length === 0
-              ? `Nenhum cheat encontrado para ${game.shortTitle}.`
+              ? `Nenhum cheat cadastrado para ${game.shortTitle}.`
               : "Nenhum cheat corresponde à sua busca."}
           </p>
-
-          {(query || category !== "all") && (
+          {cheats.length === 0 ? (
+            <button
+              onClick={handleOpenCreate}
+              className="mt-2 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors cursor-pointer"
+            >
+              Cadastrar primeiro cheat
+            </button>
+          ) : (
             <button
               className="btn-reset"
               type="button"
@@ -339,6 +325,23 @@ export function CheatsDirectory({ game }: CheatsDirectoryProps) {
                     <p className="cheat-category">
                       {cheat.category || "Geral"}
                     </p>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEdit(cheat)}
+                      className="px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:text-blue-600 border border-zinc-200 hover:border-blue-300 rounded transition-colors cursor-pointer"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenDelete(cheat)}
+                      className="px-2 py-0.5 text-[11px] font-semibold text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded transition-colors cursor-pointer"
+                    >
+                      Excluir
+                    </button>
                   </div>
                 </div>
 
@@ -376,6 +379,30 @@ export function CheatsDirectory({ game }: CheatsDirectoryProps) {
             );
           })}
         </div>
+      )}
+
+      {/* Modais de Cheat */}
+      <CheatModal
+        isOpen={isCheatModalOpen}
+        onClose={() => setIsCheatModalOpen(false)}
+        onSave={handleSaveCheat}
+        cheatToEdit={cheatToEdit}
+        defaultGameId={game.id}
+      />
+
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        cheat={cheatToDelete}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteCheat}
+      />
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </section>
   );

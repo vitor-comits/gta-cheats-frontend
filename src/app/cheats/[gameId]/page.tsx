@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GAMES } from "@/data/games";
@@ -8,6 +7,12 @@ interface CheatsPageProps {
   params: Promise<{
     gameId: string;
   }>;
+}
+
+export function generateStaticParams() {
+  return GAMES.map((game) => ({
+    gameId: game.id,
+  }));
 }
 
 export default async function CheatsPage({

@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "GTA Cheats Hub - Catálogo de Códigos e Trapaças de Grand Theft Auto",
+  title: "GTA Cheats Hub - Catálogo e Gestão de Códigos de Cheats",
   description:
-    "Catálogo de referência rápida para códigos e trapaças de todos os títulos da franquia Grand Theft Auto.",
+    "Guia completo de códigos de trapaça para todos os jogos da franquia Grand Theft Auto, com consulta e cadastro de cheats.",
 };
 
 export default function RootLayout({
@@ -18,7 +18,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body>
-        <Header />
+        <Suspense fallback={<header className="site-header" />}>
+          <Header />
+        </Suspense>
         <main className="site-main">{children}</main>
         <Footer />
       </body>
