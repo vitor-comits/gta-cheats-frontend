@@ -26,6 +26,12 @@ export default async function CheatsPage({
     notFound();
   }
 
+  const isVercel = Boolean(
+    process.env.VERCEL === "1" ||
+    process.env.NEXT_PUBLIC_VERCEL_ENV ||
+    process.env.NEXT_PUBLIC_IS_VERCEL === "1"
+  );
+
   return (
     <div className="page-container">
       <nav className="breadcrumb" aria-label="Navegação">
@@ -55,7 +61,7 @@ export default async function CheatsPage({
         </div>
       </header>
 
-      <CheatsDirectory game={game} />
+      <CheatsDirectory game={game} isReadOnly={isVercel} />
     </div>
   );
 }

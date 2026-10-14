@@ -15,6 +15,21 @@ import Toast from "@/components/Toast";
 
 interface CheatsDirectoryProps {
   game: Game;
+  isReadOnly?: boolean;
+}
+
+function checkIsVercel(): boolean {
+  if (process.env.NEXT_PUBLIC_IS_VERCEL === "1") return true;
+  if (process.env.VERCEL === "1") return true;
+  if (Boolean(process.env.NEXT_PUBLIC_VERCEL_ENV)) return true;
+  if (
+    typeof window !== "undefined" &&
+    (window.location.hostname.endsWith(".vercel.app") ||
+      window.location.hostname.includes("vercel"))
+  ) {
+    return true;
+  }
+  return false;
 }
 
 const PLATFORMS = [
@@ -24,7 +39,11 @@ const PLATFORMS = [
   { key: "code_phone", label: "Celular" },
 ] as const;
 
-export function CheatsDirectory({ game }: CheatsDirectoryProps) {
+export function CheatsDirectory({
+  game,
+  isReadOnly: isReadOnlyProp,
+}: CheatsDirectoryProps) {
+  const isReadOnly = isReadOnlyProp ?? checkIsVercel();
   const [cheats, setCheats] = useState<Cheat[]>([]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
@@ -245,13 +264,15 @@ export function CheatsDirectory({ game }: CheatsDirectoryProps) {
             </span>
           </p>
 
-          <button
-            type="button"
-            onClick={handleOpenCreate}
-            className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors cursor-pointer flex items-center gap-1 shrink-0"
-          >
-            + Novo Cheat
-          </button>
+          {!isReadOnly && (
+            <button
+              type="button"
+              onClick={handleOpenCreate}
+              className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+            >
+              + Novo Cheat
+            </button>
+          )}
         </div>
       </div>
 
@@ -284,12 +305,14 @@ export function CheatsDirectory({ game }: CheatsDirectoryProps) {
               : "Nenhum cheat corresponde à sua busca."}
           </p>
           {cheats.length === 0 ? (
-            <button
-              onClick={handleOpenCreate}
-              className="mt-2 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors cursor-pointer"
-            >
-              Cadastrar primeiro cheat
-            </button>
+            !isReadOnly && (
+              <button
+                onClick={handleOpenCreate}
+                className="mt-2 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors cursor-pointer"
+              >
+                Cadastrar primeiro cheat
+              </button>
+            )
           ) : (
             <button
               className="btn-reset"
@@ -327,22 +350,24 @@ export function CheatsDirectory({ game }: CheatsDirectoryProps) {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEdit(cheat)}
-                      className="px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:text-blue-600 border border-zinc-200 hover:border-blue-300 rounded transition-colors cursor-pointer"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenDelete(cheat)}
-                      className="px-2 py-0.5 text-[11px] font-semibold text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded transition-colors cursor-pointer"
-                    >
-                      Excluir
-                    </button>
-                  </div>
+                  {!isReadOnly && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(cheat)}
+                        className="px-2 py-0.5 text-[11px] font-semibold text-zinc-600 hover:text-blue-600 border border-zinc-200 hover:border-blue-300 rounded transition-colors cursor-pointer"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDelete(cheat)}
+                        className="px-2 py-0.5 text-[11px] font-semibold text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded transition-colors cursor-pointer"
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {availableCodes.length > 0 ? (
