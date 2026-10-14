@@ -22,7 +22,7 @@ export default function AboutPage() {
       <div className="space-y-6 max-w-3xl">
         <div className="p-6 rounded-xl border border-zinc-200 bg-white shadow-xs space-y-3">
           <h2 className="text-base font-bold text-zinc-900">
-            🕹️ O Projeto
+            O Projeto
           </h2>
           <p className="text-sm text-zinc-600 leading-relaxed">
             O <strong>GTA Cheats Hub</strong> foi desenvolvido para reunir,
@@ -35,7 +35,7 @@ export default function AboutPage() {
 
         <div className="p-6 rounded-xl border border-zinc-200 bg-white shadow-xs space-y-3">
           <h2 className="text-base font-bold text-zinc-900">
-            🛠️ Tecnologias Utilizadas
+            Tecnologias Utilizadas
           </h2>
           <ul className="list-disc list-inside space-y-1.5 text-sm text-zinc-600">
             <li>
@@ -55,7 +55,7 @@ export default function AboutPage() {
 
         <div className="p-6 rounded-xl border border-zinc-200 bg-white shadow-xs space-y-3">
           <h2 className="text-base font-bold text-zinc-900">
-            📄 Aviso Legal
+            Aviso Legal
           </h2>
           <p className="text-xs text-zinc-500 leading-relaxed">
             Este projeto tem finalidade educacional e comunitária. Todos os
