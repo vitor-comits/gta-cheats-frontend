@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GAMES } from "@/data/games";
@@ -15,9 +16,7 @@ export function generateStaticParams() {
   }));
 }
 
-export default async function CheatsPage({
-  params,
-}: CheatsPageProps) {
+async function CheatsContent({ params }: CheatsPageProps) {
   const { gameId } = await params;
 
   const game = GAMES.find((item) => item.id === gameId);
@@ -63,5 +62,21 @@ export default async function CheatsPage({
 
       <CheatsDirectory game={game} isReadOnly={isVercel} />
     </div>
+  );
+}
+
+export default function CheatsPage(props: CheatsPageProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="page-container">
+          <div className="empty-state">
+            <p className="empty-state-text">Carregando...</p>
+          </div>
+        </div>
+      }
+    >
+      <CheatsContent {...props} />
+    </Suspense>
   );
 }
